@@ -18,6 +18,66 @@ A microservices-based RAG chat storage system using FastAPI, gRPC, and PostgreSQ
 >
 > **🚀 For the best experience, use Option 2 (Run Locally) below, as the Docker setup currently has import issues.**
 
+### Quick Setup Script
+
+For a faster setup, you can create a setup script:
+
+```bash
+# Create setup script
+cat > setup.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Setting up RAG Chat Storage..."
+
+# 1. Create virtual environment and install dependencies
+uv venv .venv
+source .venv/bin/activate
+uv sync
+uv add grpcio-tools
+
+# 2. Generate protocol buffers
+make proto
+
+# 3. Fix imports (macOS/Linux compatible)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/db_service/db_service_pb2_grpc.py
+    sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/session_service/db_service_pb2_grpc.py
+    sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/message_service/db_service_pb2_grpc.py
+    sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/session_service/session_pb2_grpc.py
+    sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/api_gateway/session_pb2_grpc.py
+    sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/message_service/message_pb2_grpc.py
+    sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/api_gateway/message_pb2_grpc.py
+else
+    # Linux
+    sed -i 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/db_service/db_service_pb2_grpc.py
+    sed -i 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/session_service/db_service_pb2_grpc.py
+    sed -i 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/message_service/db_service_pb2_grpc.py
+    sed -i 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/session_service/session_pb2_grpc.py
+    sed -i 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/api_gateway/session_pb2_grpc.py
+    sed -i 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/message_service/message_pb2_grpc.py
+    sed -i 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/api_gateway/message_pb2_grpc.py
+fi
+
+echo "Setup complete! Now start the services manually or use the individual commands below."
+EOF
+
+chmod +x setup.sh
+./setup.sh
+```
+
+Then start the services:
+
+```bash
+# Option A: Use the provided start script (easiest)
+./start_services.sh
+
+# Option B: Start services manually (see detailed instructions below)
+```
+
+The start script will run all services in the background and provide you with the service URLs.
+
 ### Option 1: Run with Docker (Recommended for Production)
 
 > **⚠️ Note**: The Docker setup currently has import issues. For a working setup, use **Option 2 (Run Locally)** below.
@@ -103,6 +163,8 @@ sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as ses
 sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/message_service/message_pb2_grpc.py
 sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/api_gateway/message_pb2_grpc.py
 
+# Note: On Linux, remove the '' after -i in the sed commands above
+
 # 4. Set environment variables
 export DATABASE_URL="sqlite:///./test.db"
 export DB_SERVICE_ADDR="localhost:50050"
@@ -146,10 +208,37 @@ export API_KEY="test-api-key"
 export SESSION_SERVICE_ADDR="localhost:50051"
 export MESSAGE_SERVICE_ADDR="localhost:50052"
 uvicorn src.api_gateway.main:app --host 0.0.0.0 --port 8000
+
+# Alternative: Use the provided start script
+# ./start_services.sh
 ```
 
 **API Gateway**: http://localhost:8000  
 **Swagger UI**: http://localhost:8000/docs
+
+### Verifying the Setup
+
+After starting all services, verify they're running correctly:
+
+```bash
+# Check if all services are running
+ps aux | grep python
+
+# Test the health endpoint
+curl http://localhost:8000/health
+
+# Check which ports are in use
+lsof -i :8000
+lsof -i :50050
+lsof -i :50051
+lsof -i :50052
+```
+
+Expected output:
+
+- Health endpoint should return: `{"status":"OK"}`
+- You should see 4 Python processes running (one for each service)
+- All ports should be listening
 
 ### Service Ports
 
@@ -250,11 +339,11 @@ curl -H "X-API-Key: test-api-key" http://localhost:8000/sessions/1/messages
 
 3. **Import errors in gRPC files**: The generated gRPC files need relative imports fixed. This is REQUIRED after running `make proto`. Use the provided `sed` commands in the setup instructions.
 
-4. **Services not starting**: Make sure all environment variables are set and each service is running in its own terminal.
+4. **Services not starting**: Make sure all environment variables are set and each service is running in its own terminal. Check the service logs for specific error messages.
 
-5. **Database connection issues**: For local development, the system uses SQLite (test.db). For Docker, it uses PostgreSQL.
+5. **Database connection issues**: For local development, the system uses SQLite (test.db). For Docker, it uses PostgreSQL. Ensure the database file is writable.
 
-6. **Port conflicts**: Ensure ports 50050, 50051, 50052, 8000, and 5432 are not in use by other applications.
+6. **Port conflicts**: Ensure ports 50050, 50051, 50052, 8000, and 5432 are not in use by other applications. Use `lsof -i :PORT` to check.
 
 7. **Missing .env file**: Docker Compose requires a `.env` file with all environment variables. Use the provided template above.
 
@@ -262,18 +351,24 @@ curl -H "X-API-Key: test-api-key" http://localhost:8000/sessions/1/messages
 
 9. **Port already in use**: If you see "address already in use" errors, stop existing services first:
 
-   ```bash
-   # Stop all running services
-   pkill -f "python -m src"
-   pkill -f "uvicorn"
-   docker-compose down
+10. **Services not communicating**: If services start but can't communicate, check that:
+    - All environment variables are set correctly
+    - Services are started in the correct order (db_service first)
+    - No firewall blocking the ports
+    - Services are running on the expected ports
 
-   # Check what's using the ports
-   lsof -i :8000
-   lsof -i :50050
-   lsof -i :50051
-   lsof -i :50052
-   ```
+```bash
+# Stop all running services
+pkill -f "python -m src"
+pkill -f "uvicorn"
+docker-compose down
+
+# Check what's using the ports
+lsof -i :8000
+lsof -i :50050
+lsof -i :50051
+lsof -i :50052
+```
 
 ### Verifying Services
 
