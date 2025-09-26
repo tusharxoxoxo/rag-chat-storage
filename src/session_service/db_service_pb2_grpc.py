@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import db_service_pb2 as db__service__pb2
+from . import db_service_pb2 as db__service__pb2
 
 GRPC_GENERATED_VERSION = '1.75.0'
 GRPC_VERSION = grpc.__version__

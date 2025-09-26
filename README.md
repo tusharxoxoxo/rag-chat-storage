@@ -10,6 +10,12 @@ A microservices-based RAG chat storage system using FastAPI, gRPC, and PostgreSQ
 
 ## Quick Start
 
+> **⚠️ Important**: If you've run this project before, stop existing services first:
+>
+> ```bash
+> pkill -f "python -m src" && pkill -f "uvicorn" && docker-compose down
+> ```
+
 ### Option 1: Run with Docker (Recommended for Production)
 
 ```bash
@@ -32,7 +38,23 @@ RATE_LIMIT=100
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 EOF
 
-# 3. Start all services with Docker
+# 3. Fix import statements in generated files (REQUIRED)
+# The generated gRPC files need relative imports fixed. Run these commands:
+
+# Fix db_service imports
+sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/db_service/db_service_pb2_grpc.py
+sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/session_service/db_service_pb2_grpc.py
+sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/message_service/db_service_pb2_grpc.py
+
+# Fix session_service imports
+sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/session_service/session_pb2_grpc.py
+sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/api_gateway/session_pb2_grpc.py
+
+# Fix message_service imports
+sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/message_service/message_pb2_grpc.py
+sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/api_gateway/message_pb2_grpc.py
+
+# 4. Start all services with Docker
 chmod +x run.sh
 ./run.sh
 ```
@@ -48,8 +70,21 @@ uv sync
 # 2. Generate gRPC protocol buffer stubs
 make proto
 
-# 3. Fix import statements in generated files (one-time setup)
-# The generated gRPC files need relative imports fixed. This has been done for you.
+# 3. Fix import statements in generated files (REQUIRED)
+# The generated gRPC files need relative imports fixed. Run these commands:
+
+# Fix db_service imports
+sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/db_service/db_service_pb2_grpc.py
+sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/session_service/db_service_pb2_grpc.py
+sed -i '' 's/import db_service_pb2 as db__service__pb2/from . import db_service_pb2 as db__service__pb2/g' src/message_service/db_service_pb2_grpc.py
+
+# Fix session_service imports
+sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/session_service/session_pb2_grpc.py
+sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as session__pb2/g' src/api_gateway/session_pb2_grpc.py
+
+# Fix message_service imports
+sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/message_service/message_pb2_grpc.py
+sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/api_gateway/message_pb2_grpc.py
 
 # 4. Set environment variables
 export DATABASE_URL="sqlite:///./test.db"
@@ -60,15 +95,39 @@ export MESSAGE_SERVICE_ADDR="localhost:50052"
 
 # 5. Start all services (run each in a separate terminal)
 # Terminal 1 - Database Service
+source .venv/bin/activate
+export DATABASE_URL="sqlite:///./test.db"
+export DB_SERVICE_ADDR="localhost:50050"
+export API_KEY="test-api-key"
+export SESSION_SERVICE_ADDR="localhost:50051"
+export MESSAGE_SERVICE_ADDR="localhost:50052"
 python -m src.db_service.main
 
 # Terminal 2 - Session Service
+source .venv/bin/activate
+export DATABASE_URL="sqlite:///./test.db"
+export DB_SERVICE_ADDR="localhost:50050"
+export API_KEY="test-api-key"
+export SESSION_SERVICE_ADDR="localhost:50051"
+export MESSAGE_SERVICE_ADDR="localhost:50052"
 python -m src.session_service.main
 
 # Terminal 3 - Message Service
+source .venv/bin/activate
+export DATABASE_URL="sqlite:///./test.db"
+export DB_SERVICE_ADDR="localhost:50050"
+export API_KEY="test-api-key"
+export SESSION_SERVICE_ADDR="localhost:50051"
+export MESSAGE_SERVICE_ADDR="localhost:50052"
 python -m src.message_service.main
 
 # Terminal 4 - API Gateway
+source .venv/bin/activate
+export DATABASE_URL="sqlite:///./test.db"
+export DB_SERVICE_ADDR="localhost:50050"
+export API_KEY="test-api-key"
+export SESSION_SERVICE_ADDR="localhost:50051"
+export MESSAGE_SERVICE_ADDR="localhost:50052"
 uvicorn src.api_gateway.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -134,7 +193,7 @@ All endpoints and their request/response formats are documented and can be teste
 Once all services are running, you can test the API:
 
 ```bash
-# Test health endpoint
+# Test health endpoint (no API key required)
 curl http://localhost:8000/health
 
 # Test session creation
@@ -150,6 +209,13 @@ curl -X POST -H "X-API-Key: test-api-key" "http://localhost:8000/sessions/1/mess
 curl -H "X-API-Key: test-api-key" http://localhost:8000/sessions/1/messages
 ```
 
+### Expected Responses
+
+- **Health Check**: `{"status":"OK"}`
+- **Session Creation**: `{"id":1,"name":"Test Session","is_favorite":false}`
+- **Session List**: `[{"id":1,"name":"Test Session","is_favorite":false}]`
+- **Message Creation**: `{"id":1,"session_id":1,"sender":"user","content":"Hello World","context":"test"}`
+
 ---
 
 ## Troubleshooting
@@ -158,7 +224,7 @@ curl -H "X-API-Key: test-api-key" http://localhost:8000/sessions/1/messages
 
 1. **Docker daemon not running**: Make sure Docker Desktop is installed and running before using Docker option.
 
-2. **Import errors in gRPC files**: The generated gRPC files need relative imports. This has been fixed in the codebase.
+2. **Import errors in gRPC files**: The generated gRPC files need relative imports fixed. This is REQUIRED after running `make proto`. Use the provided `sed` commands in the setup instructions.
 
 3. **Services not starting**: Make sure all environment variables are set and each service is running in its own terminal.
 
@@ -168,6 +234,23 @@ curl -H "X-API-Key: test-api-key" http://localhost:8000/sessions/1/messages
 
 6. **Missing .env file**: Docker Compose requires a `.env` file with all environment variables. Use the provided template above.
 
+7. **ModuleNotFoundError**: If you see "No module named 'db_service_pb2'" errors, you need to run the import fix commands after `make proto`.
+
+8. **Port already in use**: If you see "address already in use" errors, stop existing services first:
+
+   ```bash
+   # Stop all running services
+   pkill -f "python -m src"
+   pkill -f "uvicorn"
+   docker-compose down
+
+   # Check what's using the ports
+   lsof -i :8000
+   lsof -i :50050
+   lsof -i :50051
+   lsof -i :50052
+   ```
+
 ### Verifying Services
 
 ```bash
@@ -176,6 +259,26 @@ ps aux | grep python
 
 # Test individual service endpoints
 curl http://localhost:8000/health
+
+# Check which ports are in use
+lsof -i :8000
+lsof -i :50050
+lsof -i :50051
+lsof -i :50052
+```
+
+### Stopping Services
+
+```bash
+# Stop all Python processes (if running locally)
+pkill -f "python -m src"
+pkill -f "uvicorn"
+
+# Stop Docker services
+docker-compose down
+
+# Stop and remove Docker volumes (clean slate)
+docker-compose down -v
 ```
 
 ---
