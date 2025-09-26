@@ -1,0 +1,8 @@
+fastapi==0.95.2
+uvicorn[standard]==0.22.0
+grpcio>=1.75.0
+protobuf>=5.0.0
+python-dotenv==1.0.0
+slowapi==0.1.5
+limits>=1.5,<2.0
+contextvars==2.4
