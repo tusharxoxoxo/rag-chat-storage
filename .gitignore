@@ -1,11 +1,37 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Python virtualenv
+venv/
+.venv/
+.env
+*.env
 
-# Virtual environments
-.venv
+# Python cache
+__pycache__/
+*.pyc
+
+# gRPC Python generated files (OPTIONAL - if you want to always regenerate them and not check in)
+# *_pb2.py
+# *_pb2_grpc.py
+
+# Docker
+db-data/
+*.log
+
+# VS Code & JetBrains IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Jupyter
+*.ipynb_checkpoints/
+
+# Build/test artifacts
+dist/
+build/
+.eggs/
+*.egg-info/
+
+*_pb2.py
+*_pb2_grpc.py
