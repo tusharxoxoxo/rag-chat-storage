@@ -1,0 +1,12 @@
+syntax = "proto3";
+package message;
+
+service MessageService {
+  rpc CreateMessage(CreateMessageRequest) returns (Message);
+  rpc ListMessages(ListMessagesRequest) returns (MessageList);
+}
+
+message CreateMessageRequest { int32 session_id = 1; string sender = 2; string content = 3; string context = 4; }
+message Message { int32 id = 1; int32 session_id = 2; string sender = 3; string content = 4; string context = 5; }
+message ListMessagesRequest { int32 session_id = 1; int32 skip = 2; int32 limit = 3; }
+message MessageList { repeated Message messages = 1; }

@@ -1,0 +1,16 @@
+syntax = "proto3";
+package session;
+
+service SessionService {
+  rpc CreateSession(CreateSessionRequest) returns (Session);
+  rpc ListSessions(Empty) returns (SessionList);
+  rpc UpdateSession(UpdateSessionRequest) returns (Session);
+  rpc DeleteSession(SessionId) returns (Empty);
+}
+
+message Empty {}
+message SessionId { int32 id = 1; }
+message CreateSessionRequest { string name = 1; }
+message UpdateSessionRequest { int32 id = 1; string name = 2; bool is_favorite = 3; }
+message Session { int32 id = 1; string name = 2; bool is_favorite = 3; }
+message SessionList { repeated Session sessions = 1; }
