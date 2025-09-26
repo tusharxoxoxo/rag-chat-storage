@@ -30,16 +30,13 @@ dependencies = [
     "grpcio>=1.75.0",
     "protobuf>=5.0.0",
     "grpcio-tools>=1.75.0",
-    
     # FastAPI and web framework
     "fastapi>=0.95.2",
     "uvicorn[standard]>=0.22.0",
     "httpx>=0.27.0",
-    
     # Database
     "SQLAlchemy>=2.0.15",
     "psycopg2-binary>=2.9.6",
-    
     # Configuration and utilities
     "python-dotenv>=1.0.0",
     "slowapi>=0.1.5",

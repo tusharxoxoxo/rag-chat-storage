@@ -15,8 +15,12 @@ A microservices-based RAG chat storage system using FastAPI, gRPC, and PostgreSQ
 > ```bash
 > pkill -f "python -m src" && pkill -f "uvicorn" && docker-compose down
 > ```
+>
+> **🚀 For the best experience, use Option 2 (Run Locally) below, as the Docker setup currently has import issues.**
 
 ### Option 1: Run with Docker (Recommended for Production)
+
+> **⚠️ Note**: The Docker setup currently has import issues. For a working setup, use **Option 2 (Run Locally)** below.
 
 ```bash
 # 1. Install dependencies
@@ -24,7 +28,14 @@ uv venv .venv
 source .venv/bin/activate
 uv sync
 
-# 2. Create .env file with required environment variables
+# 2. Install grpcio-tools for protocol buffer generation
+uv add grpcio-tools
+
+# 3. Generate gRPC protocol buffer stubs
+source .venv/bin/activate
+make proto
+
+# 4. Create .env file with required environment variables
 cat > .env << EOF
 # Database Configuration
 POSTGRES_USER=postgres
@@ -38,7 +49,7 @@ RATE_LIMIT=100
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 EOF
 
-# 3. Fix import statements in generated files (REQUIRED)
+# 5. Fix import statements in generated files (REQUIRED)
 # The generated gRPC files need relative imports fixed. Run these commands:
 
 # Fix db_service imports
@@ -54,12 +65,14 @@ sed -i '' 's/import session_pb2 as session__pb2/from . import session_pb2 as ses
 sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/message_service/message_pb2_grpc.py
 sed -i '' 's/import message_pb2 as message__pb2/from . import message_pb2 as message__pb2/g' src/api_gateway/message_pb2_grpc.py
 
-# 4. Start all services with Docker
+# 6. Start all services with Docker
 chmod +x run.sh
 ./run.sh
 ```
 
-### Option 2: Run Locally (Development)
+### Option 2: Run Locally (Development) - **RECOMMENDED**
+
+> **✅ This is the working option. Use this for development and testing.**
 
 ```bash
 # 1. Install dependencies
@@ -67,10 +80,14 @@ uv venv .venv
 source .venv/bin/activate
 uv sync
 
-# 2. Generate gRPC protocol buffer stubs
+# 2. Install grpcio-tools for protocol buffer generation
+uv add grpcio-tools
+
+# 3. Generate gRPC protocol buffer stubs
+source .venv/bin/activate
 make proto
 
-# 3. Fix import statements in generated files (REQUIRED)
+# 4. Fix import statements in generated files (REQUIRED)
 # The generated gRPC files need relative imports fixed. Run these commands:
 
 # Fix db_service imports
@@ -222,21 +239,28 @@ curl -H "X-API-Key: test-api-key" http://localhost:8000/sessions/1/messages
 
 ### Common Issues
 
-1. **Docker daemon not running**: Make sure Docker Desktop is installed and running before using Docker option.
+1. **Docker import errors**: The Docker setup currently has issues with relative imports. Use the local development option (Option 2) instead.
 
-2. **Import errors in gRPC files**: The generated gRPC files need relative imports fixed. This is REQUIRED after running `make proto`. Use the provided `sed` commands in the setup instructions.
+2. **Missing grpcio-tools**: If you see "ModuleNotFoundError: No module named 'grpc_tools'", run:
 
-3. **Services not starting**: Make sure all environment variables are set and each service is running in its own terminal.
+   ```bash
+   source .venv/bin/activate
+   uv add grpcio-tools
+   ```
 
-4. **Database connection issues**: For local development, the system uses SQLite (test.db). For Docker, it uses PostgreSQL.
+3. **Import errors in gRPC files**: The generated gRPC files need relative imports fixed. This is REQUIRED after running `make proto`. Use the provided `sed` commands in the setup instructions.
 
-5. **Port conflicts**: Ensure ports 50050, 50051, 50052, 8000, and 5432 are not in use by other applications.
+4. **Services not starting**: Make sure all environment variables are set and each service is running in its own terminal.
 
-6. **Missing .env file**: Docker Compose requires a `.env` file with all environment variables. Use the provided template above.
+5. **Database connection issues**: For local development, the system uses SQLite (test.db). For Docker, it uses PostgreSQL.
 
-7. **ModuleNotFoundError**: If you see "No module named 'db_service_pb2'" errors, you need to run the import fix commands after `make proto`.
+6. **Port conflicts**: Ensure ports 50050, 50051, 50052, 8000, and 5432 are not in use by other applications.
 
-8. **Port already in use**: If you see "address already in use" errors, stop existing services first:
+7. **Missing .env file**: Docker Compose requires a `.env` file with all environment variables. Use the provided template above.
+
+8. **ModuleNotFoundError**: If you see "No module named 'db_service_pb2'" errors, you need to run the import fix commands after `make proto`.
+
+9. **Port already in use**: If you see "address already in use" errors, stop existing services first:
 
    ```bash
    # Stop all running services
