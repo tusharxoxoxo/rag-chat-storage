@@ -93,7 +93,7 @@ All endpoints and their request/response formats are documented and can be teste
    docker build -t rag-chat-storage-tests .
    docker run --rm -it rag-chat-storage-tests pytest -vv --capture=no
 
-# Stop services
+# Stop all the services
 docker-compose down -v
 ```
 
