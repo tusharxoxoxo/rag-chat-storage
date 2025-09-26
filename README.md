@@ -1,113 +1,100 @@
-# RAG Chat Storage API
+# RAG Chat Storage
 
-A FastAPI-based service for managing chat sessions and messages.
+A microservices-based RAG chat storage system using FastAPI, gRPC, and PostgreSQL.
 
 ## Quick Start
 
 ```bash
-uv run fastapi dev main.py
+# Install dependencies
+uv venv .venv
+source .venv/bin/activate
+uv sync
+
+# Start all services
+chmod +x run.sh
+./run.sh
 ```
 
-## API Endpoints
+API Gateway: http://localhost:8000  
+Swagger UI: http://localhost:8000/docs
 
-### Session Management
+- Generate any missing gRPC stubs (via `make proto`)
+- Build and start all containers/services using Docker Compose
+- Expose the API Gateway on port 8000
 
-#### Create Session
+5. **Verify that services are running**
+   - PostgreSQL will be on port 5432
+   - gRPC DB Service on port 50050
+   - gRPC Session Service on port 50051
+   - gRPC Message Service on port 50052
+   - FastAPI API Gateway on port 8000
 
-```http
-POST /sessions
-Content-Type: application/json
+---
 
-{
-  "name": "My Chat Session",
-  "description": "Optional description"
-}
+## Swagger / OpenAPI Documentation
+
+Once the application is running, open your browser and navigate to:
+
+```
+http://localhost:8000/docs
 ```
 
-#### List Sessions
+The Swagger UI allows you to explore and test all REST endpoints exposed by the API Gateway. You can view request parameters, response schemas, and try out example requests directly from the browser.
 
-```http
-GET /sessions
-```
+---
 
-#### Get Session
+## Available APIs (Overview)
 
-```http
-GET /sessions/{session_id}
-```
-
-#### Update Session
-
-```http
-PUT /sessions/{session_id}
-Content-Type: application/json
-
-{
-  "name": "Updated Name",
-  "description": "Updated description"
-}
-```
-
-#### Delete Session
-
-```http
-DELETE /sessions/{session_id}
-```
-
-### Message Management
-
-#### Add Message
-
-```http
-POST /sessions/{session_id}/messages
-Content-Type: application/json
-
-{
-  "content": "Hello, how are you?",
-  "role": "user",
-  "metadata": {"optional": "data"}
-}
-```
-
-#### Get Messages
-
-```http
-GET /sessions/{session_id}/messages?limit=10&offset=0
-```
-
-#### Get Specific Message
-
-```http
-GET /sessions/{session_id}/messages/{message_id}
-```
-
-#### Delete Message
-
-```http
-DELETE /sessions/{session_id}/messages/{message_id}
-```
+> **Note**: All non-health endpoints require an API key header `X-API-Key: <your_api_key>` in the request. Configure this value in your `.env` file before running.
 
 ### Health Check
 
-```http
-GET /health
+- **GET /health**
+  - **Description**: Returns a simple “OK” status to verify the API Gateway is up.
+  - **Authentication**: None
+
+### Session Endpoints
+
+- **POST /sessions**
+  - Create a new chat session (body parameter: `name`)
+- **GET /sessions**
+  - List all chat sessions
+- **PATCH /sessions/{id}**
+  - Update a session’s `name` and/or `is_favorite` flag
+- **DELETE /sessions/{id}**
+  - Delete a session by its ID
+
+### Message Endpoints
+
+- **POST /sessions/{session_id}/messages**
+  - Add a new message to a specific session (parameters: `sender`, `content`, `context`)
+- **GET /sessions/{session_id}/messages**
+  - Retrieve messages for a given session (supports `skip` and `limit` for pagination)
+
+All endpoints and their request/response formats are documented and can be tested via Swagger UI.
+
+---
+
+## Notes
+
+- Copy `.env.example` to `.env` and fill in your configuration (PostgreSQL credentials, API key, etc.) before running.
+- If you modify any `.proto` files, re-run `make proto` to regenerate gRPC stubs.
+- To stop and remove all Docker containers and volumes (including the Postgres volume), run:
+  ```bash
+  docker-compose down -v
+  ```
+
+## Run Unit Tests
+
+- Ensure you are in the main directory
+
+```bash
+   uv pip install -e ".[test]"
+   docker build -t rag-chat-storage-tests .
+   docker run --rm -it rag-chat-storage-tests pytest -vv --capture=no
+
+# Stop services
+docker-compose down -v
 ```
 
-## Data Models
-
-### Session
-
-- `id`: Unique session identifier
-- `name`: Session name
-- `description`: Optional description
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
-
-### Message
-
-- `id`: Unique message identifier
-- `session_id`: Parent session ID
-- `content`: Message content
-- `role`: "user" or "assistant"
-- `metadata`: Optional metadata dictionary
-- `created_at`: Creation timestamp
+---
